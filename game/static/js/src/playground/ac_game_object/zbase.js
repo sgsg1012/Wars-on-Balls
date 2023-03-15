@@ -40,11 +40,10 @@ let AC_GAME_ANIMATION = function(timestamp){
             obj.update();
             obj.timedelta=timestamp-last_timestamp;
         }
-        last_timestamp=timestamp;
-
-        // 这一帧执行完之后，递归调用执行下一帧
-        requestAnimationFrame(AC_GAME_ANIMATION);
     }
+    last_timestamp=timestamp;
+    // 这一帧执行完之后，递归调用执行下一帧
+    requestAnimationFrame(AC_GAME_ANIMATION);
 }
 
 // 该函数会在每一帧执行传入的参数函数

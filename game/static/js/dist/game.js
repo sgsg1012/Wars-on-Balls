@@ -82,11 +82,10 @@ let AC_GAME_ANIMATION = function(timestamp){
             obj.update();
             obj.timedelta=timestamp-last_timestamp;
         }
-        last_timestamp=timestamp;
-
-        // 这一帧执行完之后，递归调用执行下一帧
-        requestAnimationFrame(AC_GAME_ANIMATION);
     }
+    last_timestamp=timestamp;
+    // 这一帧执行完之后，递归调用执行下一帧
+    requestAnimationFrame(AC_GAME_ANIMATION);
 }
 
 // 该函数会在每一帧执行传入的参数函数
@@ -113,18 +112,74 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
         this.ctx.fillStyle="rgba(0,0,0,0.2)";
         this.ctx.fillRect(0,0,this.ctx.canvas.width,this.ctx.canvas.height); 
     }
+}class Player extends AcGameObject{
+    constructor(playground,x,y,radius,color,speed,is_me){
+        super();
+        this.playground=playground;
+        this.ctx=this.playground.game_map.ctx;
+        this.x=x;
+        this.y=y;
+        this.direction=0;
+        this.move_length=0;
+        this.radius=radius;
+        this.speed=speed;
+        this.color=color;
+        this.is_me=is_me;
+        this.eps=0.1;
+    }
+    start(){
+        if (this.is_me) {
+            this.add_listening_events();
+        }
+    }
+    update(){
+        if(this.move_length<this.eps){
+            this.move_length=0;
+            this.direction=0;
+        }else{
+            let moved = Math.min(this.move_length,this.speed * this.timedelta / 1000);
+            this.x += moved * Math.cos(this.direction);
+            this.y += moved * Math.sin(this.direction);
+            this.move_length -= moved;
+        }
+        this.render();
+    }
+    add_listening_events(){
+        let outer = this;
+        this.playground.game_map.$canvas.mousedown(function(e) {
+            if (e.which === 3) {
+                outer.move_to(e.clientX, e.clientY);
+            }
+        });
+    }
+    get_distance(x1,y1,x2,y2){
+        let dx = x1 - x2;
+        let dy = y1 - y2;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    move_to(x,y){
+        this.move_length=this.get_distance(this.x,this.y,x,y);
+        this.direction = Math.atan2(y-this.y,x-this.x);
+    }
+    render(){
+        this.ctx.beginPath();
+        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.fillStyle = this.color;
+        this.ctx.fill();
+    }
 }class AcGamePlayground{
     constructor(root){
         this.root=root;
         this.$playground=$(`
             <div class="ac-game-playground">
-
             </div>
         `);
         this.root.$ac_game.append(this.$playground);
         this.width=this.$playground.width();
         this.height=this.$playground.height();
         this.game_map=new GameMap(this);
+        this.players = [];
+        this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, "white", this.height * 0.5, true));
         this.start();
     }
     start(){
