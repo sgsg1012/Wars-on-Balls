@@ -119,7 +119,8 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
         this.ctx=this.playground.game_map.ctx;
         this.x=x;
         this.y=y;
-        this.direction=0;
+        this.direction_x=0;
+        this.direction_y=0;
         this.move_length=0;
         this.radius=radius;
         this.speed=speed;
@@ -135,11 +136,11 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
     update(){
         if(this.move_length<this.eps){
             this.move_length=0;
-            this.direction=0;
+            this.direction_x=this.direction_y=0;
         }else{
             let moved = Math.min(this.move_length,this.speed * this.timedelta / 1000);
-            this.x += moved * Math.cos(this.direction);
-            this.y += moved * Math.sin(this.direction);
+            this.x += moved * this.direction_x;
+            this.y += moved * this.direction_y;
             this.move_length -= moved;
         }
         this.render();
@@ -147,8 +148,13 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
     add_listening_events(){
         let outer = this;
         this.playground.game_map.$canvas.mousedown(function(e) {
-            if (e.which === 3) {
+            if (e.which === 1) {
                 outer.move_to(e.clientX, e.clientY);
+            }
+        });
+        $(window).keydown(function(e){
+            if(e.which === 81) { // q
+                let fireball = new FireBall(outer.playground,outer,outer.x,outer.y,outer.direction_x,outer.direction_y,outer.playground.height * 0.02, "red", outer.playground.height * 0.5, outer.playground.height * 1);
             }
         });
     }
@@ -159,7 +165,44 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
     }
     move_to(x,y){
         this.move_length=this.get_distance(this.x,this.y,x,y);
-        this.direction = Math.atan2(y-this.y,x-this.x);
+        let angle = Math.atan2(y-this.y,x-this.x);
+        this.direction_x = Math.cos(angle);
+        this.direction_y = Math.sin(angle);
+    }
+    render(){
+        this.ctx.beginPath();
+        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.fillStyle = this.color;
+        this.ctx.fill();
+    }
+}class FireBall extends AcGameObject{
+    constructor(playground,player,x,y,dx,dy,radius,color,speed,move_length){
+        super();
+        this.playground=playground;
+        this.player=player;
+        this.ctx=this.playground.game_map.ctx;
+        this.x=x;
+        this.y=y;
+        this.direction_x=dx;
+        this.direction_y=dy;
+        this.move_length=move_length;
+        this.radius=radius;
+        this.speed=speed;
+        this.color=color;
+        this.eps=0.1;
+    }
+    start(){
+    }
+    update(){
+        if(this.move_length<this.eps){
+            this.destroy();
+        }else{
+            let moved = Math.min(this.move_length,this.speed * this.timedelta / 1000);
+            this.x += moved * this.direction_x;
+            this.y += moved * this.direction_y;
+            this.move_length -= moved;
+        }
+        this.render();
     }
     render(){
         this.ctx.beginPath();
