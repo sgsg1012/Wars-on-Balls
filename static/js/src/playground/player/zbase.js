@@ -23,6 +23,12 @@ class Player extends AcGameObject{
         this.friction=0.9; // 摩擦力
         this.spendtime=0;
         this.alive=true;
+
+        // 加载用户头像
+        if(this.is_me){
+            this.img = new Image();
+            this.img.src = this.playground.root.settings.photo;
+        }
     }
     start(){
         if (this.is_me) { // 给自己的小球绑定一些监听事件
@@ -119,7 +125,7 @@ class Player extends AcGameObject{
         this.radius -= damage;
         this.speed *= 0.8;
         // 死亡
-        if (this.radius < 10) {
+        if (this.radius < 10) { 
             this.alive=false;
             this.destroy();
             return false;
@@ -155,10 +161,21 @@ class Player extends AcGameObject{
     }
     // 渲染
     render(){
-        this.ctx.beginPath();
-        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        this.ctx.fillStyle = this.color;
-        this.ctx.fill();
+        if(this.is_me){
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            this.ctx.stroke();
+            this.ctx.clip();
+            this.ctx.drawImage(this.img, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2); 
+            this.ctx.restore();
+        }
+        else{
+            this.ctx.beginPath();
+            this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            this.ctx.fillStyle = this.color;
+            this.ctx.fill();
+        }
     }
     on_destroy(){
         for(let i=0; i < this.playground.players.length; i++){
