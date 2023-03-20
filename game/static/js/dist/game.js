@@ -546,6 +546,8 @@ class Particle extends AcGameObject{
         this.$register_submit = this.$register.find(".ac-game-settings-submit button");
         this.$register_error_message = this.$register.find(".ac-game-settings-error-message");
         this.$register_login = this.$register.find(".ac-game-settings-option");
+        
+        this.$acwing_login = this.$settings.find('.ac-game-settings-acwing img');
 
         this.$register.hide();
 
@@ -555,13 +557,19 @@ class Particle extends AcGameObject{
     }
 
     start() {
+        let outer = this;
         this.getinfo();
         this.add_listening_events();
+        // acwing第三方登录
+        this.$acwing_login.click(function() {
+            outer.acwing_login();
+        });
     }
 
     add_listening_events() {
         this.add_listening_events_login();
         this.add_listening_events_register();
+        
     }
 
     add_listening_events_login() {
@@ -582,6 +590,19 @@ class Particle extends AcGameObject{
         });
         this.$register_submit.click(function() {
             outer.register_on_remote();
+        });
+    }
+
+    acwing_login(){ // acwing第三方授权登录
+        $.ajax({
+            url: "https://app907.acapp.acwing.com.cn/settings/acwing_authorize_login/obtain_authorization",
+            type: "GET",
+            success: function(resp) {
+                // console.log(resp);
+                if (resp.result === "success") {
+                    window.location.replace(resp.apply_code_url);
+                }
+            }
         });
     }
 
