@@ -1,8 +1,6 @@
 class Settings {
     constructor(root) {
         this.root = root;
-        this.platform = "WEB";
-        if (this.root.AcWingOS) this.platform = "ACAPP";
         this.username = "";
         this.photo = "";
 
@@ -143,7 +141,7 @@ class Settings {
         this.$login_error_message.empty();
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/login/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/login/",
             type: "GET",
             data: {
                 username: username,
@@ -169,7 +167,7 @@ class Settings {
         this.$register_error_message.empty();
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/register/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/register/",
             type: "GET",
             data: {
                 username: username,
@@ -191,7 +189,7 @@ class Settings {
         if (this.platform === "ACAPP") return false;
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/logout/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/logout/",
             type: "GET",
             success: function(resp) {
                 console.log(resp);
@@ -216,10 +214,9 @@ class Settings {
         let outer = this;
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/getinfo/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/getinfo/",
             type: "GET",
             data: {
-                platform: outer.platform,
             },
             success: function(resp) {
                 console.log(resp);

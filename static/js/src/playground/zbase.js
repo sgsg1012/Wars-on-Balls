@@ -30,7 +30,7 @@ class AcGamePlayground{
         this.add_listening_events();
         this.players = [];
         this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, "white", this.$playground.height() * 0.5, true));
-        for(let i=0;i<20;i++){
+        for(let i=0;i<5;i++){
             this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, this.get_random_color(), this.$playground.height() * 0.3, false));
         }
     }

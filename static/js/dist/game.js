@@ -200,7 +200,7 @@ class Particle extends AcGameObject{
     }
     update(){
         this.spendtime += this.timedelta / 1000;
-        // 自动攻击
+        // 人机自动攻击
         if(this.alive && !this.is_me && this.spendtime > 3 &&  Math.random() < 1.0/300){
             let tag = false;
             for(let i=0;i<this.playground.players.length;i++)
@@ -284,7 +284,7 @@ class Particle extends AcGameObject{
         this.radius -= damage;
         this.speed *= 0.8;
         // 死亡
-        if (this.radius < 10) { 
+        if (this.radius < 1) { 
             this.alive=false;
             this.destroy();
             return false;
@@ -442,7 +442,7 @@ class Particle extends AcGameObject{
         this.add_listening_events();
         this.players = [];
         this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, "white", this.$playground.height() * 0.5, true));
-        for(let i=0;i<20;i++){
+        for(let i=0;i<5;i++){
             this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, this.get_random_color(), this.$playground.height() * 0.3, false));
         }
     }
@@ -452,8 +452,6 @@ class Particle extends AcGameObject{
 }class Settings {
     constructor(root) {
         this.root = root;
-        this.platform = "WEB";
-        if (this.root.AcWingOS) this.platform = "ACAPP";
         this.username = "";
         this.photo = "";
 
@@ -594,7 +592,7 @@ class Particle extends AcGameObject{
         this.$login_error_message.empty();
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/login/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/login/",
             type: "GET",
             data: {
                 username: username,
@@ -620,7 +618,7 @@ class Particle extends AcGameObject{
         this.$register_error_message.empty();
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/register/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/register/",
             type: "GET",
             data: {
                 username: username,
@@ -642,7 +640,7 @@ class Particle extends AcGameObject{
         if (this.platform === "ACAPP") return false;
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/logout/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/logout/",
             type: "GET",
             success: function(resp) {
                 console.log(resp);
@@ -667,10 +665,9 @@ class Particle extends AcGameObject{
         let outer = this;
 
         $.ajax({
-            url: "https://app907.acapp.acwing.com.cn/settings/getinfo/",
+            url: "https://app907.acapp.acwing.com.cn/settings/login_system/getinfo/",
             type: "GET",
             data: {
-                platform: outer.platform,
             },
             success: function(resp) {
                 console.log(resp);
@@ -695,10 +692,9 @@ class Particle extends AcGameObject{
     }
 }
 export class AcGame {
-    constructor(id,acwing_os){
+    constructor(id){
         // console.log('create ac game')
         this.id=id;
-        this.acwing_os=acwing_os;
         this.$ac_game=$('#'+this.id);
         this.settings=new Settings(this);
         this.menu=new AcGameMenu(this);

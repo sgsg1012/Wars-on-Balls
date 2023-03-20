@@ -41,7 +41,7 @@ class Player extends AcGameObject{
     }
     update(){
         this.spendtime += this.timedelta / 1000;
-        // 自动攻击
+        // 人机自动攻击
         if(this.alive && !this.is_me && this.spendtime > 3 &&  Math.random() < 1.0/300){
             let tag = false;
             for(let i=0;i<this.playground.players.length;i++)
@@ -125,7 +125,7 @@ class Player extends AcGameObject{
         this.radius -= damage;
         this.speed *= 0.8;
         // 死亡
-        if (this.radius < 10) { 
+        if (this.radius < 1) { 
             this.alive=false;
             this.destroy();
             return false;
