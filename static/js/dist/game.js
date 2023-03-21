@@ -103,13 +103,15 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
         this.render();
     }
     add_listening_events(){
-        window.addEventListener("resize", () => {
-            this.ctx.canvas.width = this.playground.$playground.width();
-            this.ctx.canvas.height = this.playground.$playground.height();
-        });
         this.$canvas.on("contextmenu", function() {
             return false;
         });
+    }
+    resize() {
+        this.ctx.canvas.width = this.playground.width;
+        this.ctx.canvas.height = this.playground.height;
+        this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
+        this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
     update(){
         this.render();
@@ -134,7 +136,7 @@ class Particle extends AcGameObject{
         this.speed=speed;
         this.color=color;
         this.friction=0.9;
-        this.eps=0.1; // 误差
+        this.eps=0.01; // 误差
     }
     start(){
     }
@@ -152,8 +154,9 @@ class Particle extends AcGameObject{
         this.render();
     }
     render(){
+        let scale = this.playground.scale;
         this.ctx.beginPath();
-        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
     }
@@ -174,7 +177,7 @@ class Particle extends AcGameObject{
         this.speed=speed;
         this.color=color;
         this.is_me=is_me; // 小球是否是自己
-        this.eps=0.1; //误差 
+        this.eps=0.01; //误差 
         // 被攻击的强制移动
         this.damage_x=0;
         this.damage_y=0;
@@ -192,59 +195,65 @@ class Particle extends AcGameObject{
     start(){
         if (this.is_me) { // 给自己的小球绑定一些监听事件
             this.add_listening_events();
-        }else{
-            let tx = Math.random() * this.playground.$playground.width();
-            let ty = Math.random() * this.playground.$playground.height();
+        }else{ // 人机自动移动
+            let tx = Math.random() * this.playground.width / this.playground.scale;
+            let ty = Math.random() * this.playground.height / this.playground.scale;
             this.move_to(tx, ty);
         }
     }
     update(){
+        // 人机自动攻击
         this.spendtime += this.timedelta / 1000;
+        this.update_attack();
+        // 更新位置
+        this.update_position();
+        // 渲染
+        this.render();
+    }
+    update_attack(){
         // 人机自动攻击
         if(this.alive && !this.is_me && this.spendtime > 3 &&  Math.random() < 1.0/300){
             let tag = false;
             for(let i=0;i<this.playground.players.length;i++)
             {
                 if(this.playground.players[i].is_me){
-                    this.shoot_fireball(this.playground.players[i].x,this.playground.players[i].y);
+                    this.shoot_fireball(this.playground.players[i].x / this.playground.scale,this.playground.players[i].y / this.playground.scale);
                     tag = true;
                     break;
                 }
             }
             if(!tag){
                 let player = this.playground.players[Math.floor(Math.random()*this.playground.players.length)];
-                this.shoot_fireball(player.x,player.y);
+                this.shoot_fireball(player.x / this.playground.scale, player.y / this.playground.scale);
             }
         }
-
-        if(this.damage_speed > 10){
-            this.vx = this.vy = 0;
+    }
+    update_position(){
+        if(this.damage_speed > this.eps){
+            this.direction_x = this.direction_y = 0;
             this.move_length = 0;
             this.x += this.damage_x * this.damage_speed * this.timedelta / 1000;
             this.y += this.damage_y * this.damage_speed * this.timedelta / 1000;
             this.damage_speed *= this.friction;
-
         }else{
-            if(this.move_length<this.eps){ // 移动距离为0 停止移动
+            if(this.move_length < this.eps){ // 移动距离为0 停止移动
                 this.move_length=0;
                 this.direction_x=this.direction_y=0;
-                if(!this.is_me)
+                if(!this.is_me) // 人机自动移动
                 {
-                    let tx = Math.random() * this.playground.$playground.width();
-                    let ty = Math.random() * this.playground.$playground.height();
+                    let tx = Math.random() * this.playground.width / this.playground.scale;
+                    let ty = Math.random() * this.playground.height / this.playground.scale;
                     this.move_to(tx, ty);
                 }
             }else{ // 移动
                 // 两帧之间小球的移动距离
-                let moved = Math.min(this.move_length,this.speed * this.timedelta / 1000);
+                let moved = Math.min(this.move_length ,this.speed * this.timedelta / 1000);
                 this.x += moved * this.direction_x;
                 this.y += moved * this.direction_y;
                 // 别忘了减去已经移动的距离
                 this.move_length -= moved;
             }
         } 
-        // 渲染
-        this.render();
     }
     add_listening_events(){
         let outer = this;
@@ -252,7 +261,7 @@ class Particle extends AcGameObject{
         this.playground.game_map.$canvas.mousedown(function(e) {
             if (outer.alive && e.which === 1) {
                 const rect = outer.ctx.canvas.getBoundingClientRect();
-                outer.move_to(e.clientX-rect.left, e.clientY-rect.top);
+                outer.move_to((e.clientX-rect.left) / outer.playground.scale, (e.clientY-rect.top) / outer.playground.scale);
             }
         });
         // 监听键盘事件 发技能 技能的方向为当前鼠标的位置与自己位置的夹角
@@ -261,7 +270,7 @@ class Particle extends AcGameObject{
                 const rect = outer.ctx.canvas.getBoundingClientRect();
                 let tx=outer.playground.mouse_x;
                 let ty=outer.playground.mouse_y;
-                outer.shoot_fireball(tx-rect.left,ty-rect.top);
+                outer.shoot_fireball((tx-rect.left)/outer.playground.scale, (ty-rect.top)/outer.playground.scale);
                 outer.move_length=0;
                 outer.direction_x=0;
                 outer.direction_y=0;
@@ -284,7 +293,7 @@ class Particle extends AcGameObject{
         this.radius -= damage;
         this.speed *= 0.8;
         // 死亡
-        if (this.radius < 1) { 
+        if (this.radius < this.eps) { 
             this.alive=false;
             this.destroy();
             return false;
@@ -307,31 +316,32 @@ class Particle extends AcGameObject{
         this.direction_y = Math.sin(angle);
     }
     shoot_fireball(tx, ty) {
-        console.log(this.playground.players.length);
         let x = this.x, y = this.y;
-        let radius = this.playground.$playground.height() * 0.01;
+        let radius = 0.01;
         let angle = Math.atan2(ty - this.y, tx - this.x);
         let vx = Math.cos(angle), vy = Math.sin(angle);
         let color = "orange";
-        let speed = this.playground.$playground.height() * 0.5;
-        let move_length = this.playground.$playground.height() * 1;
-        let damage = this.playground.$playground.height() * 0.01;
+        let speed = 0.5;
+        let move_length = 1;
+        let damage = 0.01;
         new FireBall(this.playground, this, x, y, vx, vy, radius, color, speed, move_length, damage);
     }
     // 渲染
     render(){
+        let scale = this.playground.scale;
+
         if(this.is_me){
             this.ctx.save();
             this.ctx.beginPath();
-            this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
             this.ctx.stroke();
             this.ctx.clip();
-            this.ctx.drawImage(this.img, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2); 
+            this.ctx.drawImage(this.img, (this.x - this.radius) * scale, (this.y - this.radius) * scale, this.radius * 2 * scale, this.radius * 2 * scale); 
             this.ctx.restore();
         }
         else{
             this.ctx.beginPath();
-            this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
             this.ctx.fillStyle = this.color;
             this.ctx.fill();
         }
@@ -360,7 +370,7 @@ class Particle extends AcGameObject{
         this.speed=speed;
         this.color=color;
         this.damage=damage;
-        this.eps=0.1; // 误差
+        this.eps=0.01; // 误差
     }
     start(){
     }
@@ -377,7 +387,7 @@ class Particle extends AcGameObject{
             }
         }
         // 处理火球移动
-        if(this.move_length<this.eps){
+        if(this.move_length < this.eps){
             this.destroy();
             return false;
         }else{
@@ -405,8 +415,9 @@ class Particle extends AcGameObject{
         return distance < this.radius + obj.radius;
     }
     render(){
+        let scale = this.playground.scale;
         this.ctx.beginPath();
-        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
     }
@@ -419,31 +430,46 @@ class Particle extends AcGameObject{
         `);
         this.mouse_x=0; //存储鼠标位置
         this.mouse_y=0;
+        this.root.$ac_game.append(this.$playground);
+        this.width = this.$playground.width();
+        this.height = this.$playground.height();
         this.start();
     }
     get_random_color(){
-        let colors=["white","green","red","pink","puple","cyan"];
+        let colors=["white","green","red","pink","cyan"];
         return colors[Math.floor(Math.random()*colors.length)];
     }
     start(){
         this.hide();
+        this.add_listening_events();
     }
     add_listening_events(){
         let outer=this;
-        this.game_map.$canvas.mousemove(function(e) {
+        $(window).resize(function() {
+            outer.resize();
+        });
+        $(window).mousemove(function(e){
             outer.mouse_x=e.clientX;
             outer.mouse_y=e.clientY;
         });
     }
+    resize() {
+        this.width = this.$playground.width();
+        this.height = this.$playground.height();
+        let unit = Math.min(this.width / 16, this.height / 9);
+        this.width = unit * 16;
+        this.height = unit * 9;
+        this.scale = this.height;
+        if (this.game_map) this.game_map.resize();
+    }
     show(){
         this.$playground.show();
-        this.root.$ac_game.append(this.$playground);
         this.game_map=new GameMap(this);
-        this.add_listening_events();
+        this.resize();
         this.players = [];
-        this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, "white", this.$playground.height() * 0.5, true));
+        this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.5, true));
         for(let i=0;i<5;i++){
-            this.players.push(new Player(this, this.$playground.width() / 2, this.$playground.height() / 2, this.$playground.height() * 0.05, this.get_random_color(), this.$playground.height() * 0.3, false));
+            this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.3, false));
         }
     }
     hide(){

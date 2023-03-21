@@ -14,7 +14,7 @@ class FireBall extends AcGameObject{
         this.speed=speed;
         this.color=color;
         this.damage=damage;
-        this.eps=0.1; // 误差
+        this.eps=0.01; // 误差
     }
     start(){
     }
@@ -31,7 +31,7 @@ class FireBall extends AcGameObject{
             }
         }
         // 处理火球移动
-        if(this.move_length<this.eps){
+        if(this.move_length < this.eps){
             this.destroy();
             return false;
         }else{
@@ -59,8 +59,9 @@ class FireBall extends AcGameObject{
         return distance < this.radius + obj.radius;
     }
     render(){
+        let scale = this.playground.scale;
         this.ctx.beginPath();
-        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
     }
