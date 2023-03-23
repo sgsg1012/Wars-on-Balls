@@ -1,9 +1,9 @@
 class Player extends AcGameObject{
-    constructor(playground,x,y,radius,color,speed,is_me){
+    constructor(playground,x,y,radius,color,speed,character,username,photo){
+        // console.log(username);
         super();
         this.playground=playground;
         this.ctx=this.playground.game_map.ctx;
-
         // 移动位置 和 移动距离
         this.direction_x=0;
         this.direction_y=0;
@@ -14,7 +14,9 @@ class Player extends AcGameObject{
         this.radius=radius;
         this.speed=speed;
         this.color=color;
-        this.is_me=is_me; // 小球是否是自己
+        this.character=character; // 小球角色 三种 自己 敌人 机器人
+        this.username=username; // 角色信息 机器人不填
+        this.photo=photo; 
         this.eps=0.01; //误差 
         // 被攻击的强制移动
         this.damage_x=0;
@@ -23,25 +25,40 @@ class Player extends AcGameObject{
         this.friction=0.9; // 摩擦力
         this.spendtime=0;
         this.alive=true;
+        this.skill="";
 
         // 加载用户头像
-        if(this.is_me){
+        if(this.character !== "robot"){
             this.img = new Image();
-            this.img.src = this.playground.root.settings.photo;
+            this.img.src = this.photo;
+        }
+
+        if (this.character === "me") {
+            this.fireball_coldtime = 3;  // 单位：秒
+            this.fireball_img = new Image();
+            this.fireball_img.src = "https://app907.acapp.acwing.com.cn/static/image/playground/fireball.png";
+
+            this.blink_coldtime = 5;  // 单位：秒
+            this.blink_img = new Image();
+            this.blink_img.src = "https://app907.acapp.acwing.com.cn/static/image/playground/blink.png";
         }
     }
     start(){
-        if (this.is_me) { // 给自己的小球绑定一些监听事件
+        if (this.character === "me") { // 给自己的小球绑定一些监听事件
             this.add_listening_events();
-        }else{ // 人机自动移动
+        }else if(this.character === "robot") { // 人机自动移动
             let tx = Math.random() * this.playground.width / this.playground.scale;
             let ty = Math.random() * this.playground.height / this.playground.scale;
             this.move_to(tx, ty);
         }
     }
     update(){
-        // 人机自动攻击
         this.spendtime += this.timedelta / 1000;
+        this.fireball_coldtime -= this.timedelta / 1000;
+        this.fireball_coldtime = Math.max(0, this.fireball_coldtime);
+        this.blink_coldtime -= this.timedelta / 1000;
+        this.blink_coldtime = Math.max(0,this.blink_coldtime);
+        // 人机自动攻击
         this.update_attack();
         // 更新位置
         this.update_position();
@@ -50,19 +67,19 @@ class Player extends AcGameObject{
     }
     update_attack(){
         // 人机自动攻击
-        if(this.alive && !this.is_me && this.spendtime > 3 &&  Math.random() < 1.0/300){
+        if(this.alive && this.character === "robot" && this.spendtime > 3 &&  Math.random() < 1.0/300){
             let tag = false;
             for(let i=0;i<this.playground.players.length;i++)
             {
-                if(this.playground.players[i].is_me){
-                    this.shoot_fireball(this.playground.players[i].x / this.playground.scale,this.playground.players[i].y / this.playground.scale);
+                if(this.playground.players[i].character !== "robot"){ // 有用户时机器人不会自相残杀
+                    this.shoot_fireball(this.playground.players[i].x,this.playground.players[i].y);
                     tag = true;
                     break;
                 }
             }
             if(!tag){
                 let player = this.playground.players[Math.floor(Math.random()*this.playground.players.length)];
-                this.shoot_fireball(player.x / this.playground.scale, player.y / this.playground.scale);
+                this.shoot_fireball(player.x, player.y);
             }
         }
     }
@@ -77,7 +94,7 @@ class Player extends AcGameObject{
             if(this.move_length < this.eps){ // 移动距离为0 停止移动
                 this.move_length=0;
                 this.direction_x=this.direction_y=0;
-                if(!this.is_me) // 人机自动移动
+                if(this.character === "robot") // 人机自动移动
                 {
                     let tx = Math.random() * this.playground.width / this.playground.scale;
                     let ty = Math.random() * this.playground.height / this.playground.scale;
@@ -95,23 +112,56 @@ class Player extends AcGameObject{
     }
     add_listening_events(){
         let outer = this;
-        // 鼠标左键 控制移动
+        
         this.playground.game_map.$canvas.mousedown(function(e) {
-            if (outer.alive && e.which === 1) {
-                const rect = outer.ctx.canvas.getBoundingClientRect();
-                outer.move_to((e.clientX-rect.left) / outer.playground.scale, (e.clientY-rect.top) / outer.playground.scale);
+            if(outer.alive){
+                if (e.which === 1) { // 鼠标左键 控制移动
+                    const rect = outer.ctx.canvas.getBoundingClientRect();
+                    let tx = (e.clientX-rect.left) / outer.playground.scale;
+                    let ty = (e.clientY-rect.top) / outer.playground.scale;
+                    if(outer.playground.mode === "multi mode"){ // 多人模式
+                        outer.playground.multi_player_socket.send_move_to(outer.uuid,tx,ty);
+                    }else{
+                        outer.move_to(tx,ty);
+                    }
+                }else if(e.which === 3){ // 鼠标右键 控制闪现
+                    if(outer.skill === "blink"){
+                        const rect = outer.ctx.canvas.getBoundingClientRect();
+                        let tx = (e.clientX-rect.left) / outer.playground.scale;
+                        let ty = (e.clientY-rect.top) / outer.playground.scale;
+                        if(outer.playground.mode === "multi mode"){ // 多人模式
+                            outer.playground.multi_player_socket.send_blink(outer.uuid,tx,ty);
+                        }else{ // 单人模式
+                            outer.blink(tx,ty);
+                        }
+                        outer.skill = "";
+                        outer.blink_coldtime = 5.0;
+                    }
+                }
             }
         });
         // 监听键盘事件 发技能 技能的方向为当前鼠标的位置与自己位置的夹角
         $(window).keydown(function(e){
-            if(outer.alive && e.which === 81) { // 监听q键 发火球
-                const rect = outer.ctx.canvas.getBoundingClientRect();
-                let tx=outer.playground.mouse_x;
-                let ty=outer.playground.mouse_y;
-                outer.shoot_fireball((tx-rect.left)/outer.playground.scale, (ty-rect.top)/outer.playground.scale);
-                outer.move_length=0;
-                outer.direction_x=0;
-                outer.direction_y=0;
+            if(outer.alive){ // 活着才能发技能
+                if(e.which === 81) { // 监听q键 发火球
+                    if(outer.fireball_coldtime < outer.eps){ // 技能cd
+                        const rect = outer.ctx.canvas.getBoundingClientRect();
+                        let tx=outer.playground.mouse_x;
+                        let ty=outer.playground.mouse_y;
+                        tx = (tx-rect.left)/outer.playground.scale;
+                        ty = (ty-rect.top)/outer.playground.scale;
+                        if(outer.playground.mode === "multi mode"){ // 多人模式
+                            outer.playground.multi_player_socket.send_shoot_fireball(outer.uuid,tx,ty);
+                        }else{
+                            outer.shoot_fireball(tx,ty);
+                        }
+                        outer.fireball_coldtime = 3.0; // 重置冷却时间
+                    }
+                }else if(e.which === 70){ // f键 闪现
+                    if(outer.blink_coldtime < outer.eps){ // 技能cd
+                        outer.skill = "blink";
+                    }
+                }
             }
         });
     }
@@ -153,7 +203,7 @@ class Player extends AcGameObject{
         this.direction_x = Math.cos(angle);
         this.direction_y = Math.sin(angle);
     }
-    shoot_fireball(tx, ty) {
+    shoot_fireball(tx, ty) { // 火球
         let x = this.x, y = this.y;
         let radius = 0.01;
         let angle = Math.atan2(ty - this.y, tx - this.x);
@@ -163,12 +213,64 @@ class Player extends AcGameObject{
         let move_length = 1;
         let damage = 0.01;
         new FireBall(this.playground, this, x, y, vx, vy, radius, color, speed, move_length, damage);
+        // 发射技能时停止移动
+        this.move_length=0;
+        this.direction_x=0;
+        this.direction_y=0;
+    }
+    blink(x, y){ // 闪现
+        let length=Math.min(0.8,this.get_distance(this.x,this.y,x,y));
+        let angle = Math.atan2(y-this.y,x-this.x);
+        let nx = this.x + length * Math.cos(angle);
+        let ny = this.y + length * Math.sin(angle);
+        this.x=nx,this.y=ny;
+        this.move_length=0; // 闪现后停止移动
+    }
+    // 渲染 技能图标
+    render_skill_coldtime() {
+        let scale = this.playground.scale;
+        let x = 1.5, y = 0.9, r = 0.04;
+
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.arc(x * scale, y * scale, r * scale, 0, Math.PI * 2, false);
+        this.ctx.stroke();
+        this.ctx.clip();
+        this.ctx.drawImage(this.fireball_img, (x - r) * scale, (y - r) * scale, r * 2 * scale, r * 2 * scale);
+        this.ctx.restore();
+
+        if (this.fireball_coldtime > this.eps) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x * scale, y * scale);
+            this.ctx.arc(x * scale, y * scale, r * scale, 0 - Math.PI / 2, Math.PI * 2 * (1 - this.fireball_coldtime / 3) - Math.PI / 2, true);
+            this.ctx.lineTo(x * scale, y * scale);
+            this.ctx.fillStyle = "rgba(0, 0, 255, 0.6)";
+            this.ctx.fill();
+        }
+
+        x = 1.62, y = 0.9, r = 0.04;
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.arc(x * scale, y * scale, r * scale, 0, Math.PI * 2, false);
+        this.ctx.stroke();
+        this.ctx.clip();
+        this.ctx.drawImage(this.blink_img, (x - r) * scale, (y - r) * scale, r * 2 * scale, r * 2 * scale);
+        this.ctx.restore();
+
+        if (this.blink_coldtime > 0) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x * scale, y * scale);
+            this.ctx.arc(x * scale, y * scale, r * scale, 0 - Math.PI / 2, Math.PI * 2 * (1 - this.blink_coldtime / 5) - Math.PI / 2, true);
+            this.ctx.lineTo(x * scale, y * scale);
+            this.ctx.fillStyle = "rgba(0, 0, 255, 0.6)";
+            this.ctx.fill();
+        }
     }
     // 渲染
     render(){
         let scale = this.playground.scale;
 
-        if(this.is_me){
+        if(this.character !== "robot"){
             this.ctx.save();
             this.ctx.beginPath();
             this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
@@ -183,8 +285,15 @@ class Player extends AcGameObject{
             this.ctx.fillStyle = this.color;
             this.ctx.fill();
         }
+
+        if(this.character === "me"){
+            this.render_skill_coldtime();
+        }
     }
     on_destroy(){
+        if(this.character === "me" && this.playground.mode === "multi mode"){
+            this.playground.multi_player_socket.send_dead(this.uuid);
+        }
         for(let i=0; i < this.playground.players.length; i++){
             if(this.playground.players[i] === this) {
                 this.playground.players.splice(i,1);

@@ -39,14 +39,27 @@ class AcGamePlayground{
         this.scale = this.height;
         if (this.game_map) this.game_map.resize();
     }
-    show(){
+    show(mode){
         this.$playground.show();
         this.game_map=new GameMap(this);
+        this.mode = mode;
         this.resize();
         this.players = [];
-        this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.5, true));
-        for(let i=0;i<5;i++){
-            this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.3, false));
+        if(mode === "single mode"){
+            this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.5, "me",this.root.settings.username,this.root.settings.photo));
+            for(let i=0;i<10;i++){
+                this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.3, "robot"));
+            }
+        }else if(mode === "multi mode"){
+            // 多人模式
+            let outer = this;
+            let username = this.root.settings.username;
+            let photo = this.root.settings.photo;
+            this.multi_player_socket = new MultiPlayerSocket(this);
+            let uuid = this.multi_player_socket.uuid;
+            this.multi_player_socket.ws.onopen = function(){
+                outer.multi_player_socket.send_create_player(uuid, username, photo);
+            };
         }
     }
     hide(){

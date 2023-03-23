@@ -25,7 +25,13 @@ class FireBall extends AcGameObject{
             if(players[i] === this.player) continue;
             if(this.is_collision(players[i]))
             {
-                this.attack(players[i]);
+                if(this.playground.mode === "multi mode"){ // 多人模式
+                    if(this.player.character === "me"){
+                        this.attack(players[i]);
+                    }
+                }else{ // 单人模式
+                    this.attack(players[i]);
+                }                
                 this.destroy();
                 return false;
             }
@@ -44,7 +50,11 @@ class FireBall extends AcGameObject{
     }
     attack(player){
         let angle = Math.atan2(player.y - this.y, player.x - this.x);
-        player.is_attacked(angle, this.damage);
+        if(this.playground.mode === "multi mode"){
+            this.playground.multi_player_socket.send_is_attacked(player.uuid, angle, this.damage);
+        }else{
+            player.is_attacked(angle, this.damage);
+        }
         this.destroy();
         return false;
     }

@@ -24,10 +24,11 @@ class AcGameMenu{
         let outer = this;
         this.$single_mode.click(function(){
             outer.hide(); // 隐藏menu div
-            outer.root.playground.show(); // 显示playground div
+            outer.root.playground.show("single mode"); // 显示playground div
         });
         this.$multi_mode.click(function(){
-            console.log("click multi_mode");
+            outer.hide(); // 隐藏menu div
+            outer.root.playground.show("multi mode"); // 显示playground div
         });
         this.$settings.click(function(){
             console.log("click settings");

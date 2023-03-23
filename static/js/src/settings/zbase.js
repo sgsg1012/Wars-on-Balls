@@ -147,7 +147,6 @@ class Settings {
             url: "https://app907.acapp.acwing.com.cn/settings/acwing_authorize_login/obtain_authorization",
             type: "GET",
             success: function(resp) {
-                // console.log(resp);
                 if (resp.result === "success") {
                     window.location.replace(resp.apply_code_url);
                 }
@@ -169,9 +168,7 @@ class Settings {
                 password: password,
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
-                    // console.log("登录成功")
                     location.reload();
                 } else {
                     outer.$login_error_message.html(resp.result);
@@ -196,7 +193,6 @@ class Settings {
                 password_confirm: password_confirm,
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();  // 刷新页面
                 } else {
@@ -213,7 +209,6 @@ class Settings {
             url: "https://app907.acapp.acwing.com.cn/settings/login_system/logout/",
             type: "GET",
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     location.reload();
                 }
@@ -240,7 +235,6 @@ class Settings {
             data: {
             },
             success: function(resp) {
-                console.log(resp);
                 if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;
