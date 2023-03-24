@@ -98,11 +98,89 @@ let AC_GAME_ANIMATION = function(timestamp){
 }
 
 // 该函数会在每一帧执行传入的参数函数
-requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
+requestAnimationFrame(AC_GAME_ANIMATION);class ChatField {
+    constructor(playground) {
+        this.playground = playground;
+
+        this.$history = $(`<div class="ac-game-chat-field-history">历史记录</div>`);
+        this.$input = $(`<input type="text" class="ac-game-chat-field-input">`);
+
+        this.$history.hide();
+        this.$input.hide();
+
+        this.func_id = null;
+
+        this.playground.$playground.append(this.$history);
+        this.playground.$playground.append(this.$input);
+
+        this.start();
+    }
+
+    start() {
+        this.add_listening_events();
+    }
+
+    add_listening_events() {
+        let outer = this;
+
+        this.$input.keydown(function(e) {
+            if (e.which === 27) {  // ESC
+                outer.hide_input();
+                return false;
+            } else if (e.which === 13) {  // ENTER
+                let username = outer.playground.root.settings.username;
+                let text = outer.$input.val();
+                if (text) {
+                    outer.$input.val("");
+                    // outer.add_message(username, text);
+                    outer.playground.multi_player_socket.send_message(username, text);
+                }
+                return false;
+            }
+        });
+    }
+
+    render_message(message) {
+        return $(`<div>${message}</div>`);
+    }
+
+    add_message(username, text) {
+        this.show_history();
+        let message = `[${username}]${text}`;
+        this.$history.append(this.render_message(message));
+        this.$history.scrollTop(this.$history[0].scrollHeight);
+    }
+
+    show_history() {
+        let outer = this;
+        this.$history.fadeIn();
+
+        if (this.func_id) clearTimeout(this.func_id);
+
+        this.func_id = setTimeout(function() {
+            outer.$history.fadeOut();
+            outer.func_id = null;
+        }, 3000);
+    }
+
+    show_input() {
+        this.show_history();
+
+        this.$input.show();
+        this.$input.focus();
+    }
+
+    hide_input() {
+        this.$input.hide();
+        this.playground.game_map.$canvas.focus();
+    }
+}
+
+class GameMap extends AcGameObject{
     constructor(playground){
         super();
         this.playground = playground;
-        this.$canvas = $(`<canvas></canvas>`);
+        this.$canvas = $(`<canvas tabindex=0></canvas>`);
         this.ctx = this.$canvas[0].getContext('2d');
         this.ctx.canvas.width = this.playground.$playground.width();
         this.ctx.canvas.height = this.playground.$playground.height();
@@ -111,6 +189,7 @@ requestAnimationFrame(AC_GAME_ANIMATION);class GameMap extends AcGameObject{
     start(){
         this.add_listening_events();
         this.render();
+        this.$canvas.focus();
     }
     add_listening_events(){
         this.$canvas.on("contextmenu", function() {
@@ -286,6 +365,7 @@ class Particle extends AcGameObject{
         let outer = this;
         
         this.playground.game_map.$canvas.mousedown(function(e) {
+            outer.playground.chat_field.hide_input();
             if(outer.alive){
                 if (e.which === 1) { // 鼠标左键 控制移动
                     const rect = outer.ctx.canvas.getBoundingClientRect();
@@ -313,7 +393,16 @@ class Particle extends AcGameObject{
             }
         });
         // 监听键盘事件 发技能 技能的方向为当前鼠标的位置与自己位置的夹角
-        $(window).keydown(function(e){
+        this.playground.game_map.$canvas.keydown(function(e){
+            // 打开聊天输入框
+            if (e.which === 13) {  // enter
+                if (outer.playground.mode === "multi mode") {  // 打开聊天框
+                    outer.playground.chat_field.show_input();
+                    return false;
+                }
+            }
+
+
             if(outer.alive){ // 活着才能发技能
                 if(e.which === 81) { // 监听q键 发火球
                     if(outer.fireball_coldtime < outer.eps){ // 技能cd
@@ -580,6 +669,8 @@ class Particle extends AcGameObject{
                 outer.receive_is_attacked(data.uuid, data.angle, data.damage);
             }else if(event === "blink"){
                 outer.receive_blink(data.uuid, data.tx, data.ty);
+            }else if(event === "message"){
+                outer.receive_message(data.username,data.text);
             }
         }
     }
@@ -670,6 +761,16 @@ class Particle extends AcGameObject{
             'uuid': uuid,
         }));
     }
+    send_message(username, text){
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'username': username,
+            'text': text,
+        }));
+    }
+    receive_message(username, text){
+        this.playground.chat_field.add_message(username,text);
+    }
 }
 class AcGamePlayground{
     constructor(root){
@@ -728,6 +829,7 @@ class AcGamePlayground{
             let outer = this;
             let username = this.root.settings.username;
             let photo = this.root.settings.photo;
+            this.chat_field = new ChatField(this);
             this.multi_player_socket = new MultiPlayerSocket(this);
             let uuid = this.multi_player_socket.uuid;
             this.multi_player_socket.ws.onopen = function(){

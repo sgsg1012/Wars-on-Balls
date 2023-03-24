@@ -27,6 +27,8 @@ class MultiPlayer(AsyncWebsocketConsumer):
             await self.blink(data)
         elif event == "dead":
             await self.delete_user(data)
+        elif event == "message":
+            await self.send_message(data)
 
     async def creat_player(self, data):
         # 分配房间
@@ -125,7 +127,6 @@ class MultiPlayer(AsyncWebsocketConsumer):
 
 
     async def delete_user(self, data):
-        print("DELETE USER")
         uuid = data['uuid']
         players = cache.get(self.room_name)
         for player in players:
@@ -133,6 +134,19 @@ class MultiPlayer(AsyncWebsocketConsumer):
                 players.remove(player)
                 break
         cache.set(self.room_name, players,3600) #更新redis数据库，并更新持续时间
+
+
+
+    async def send_message(self, data):
+        await self.channel_layer.group_send(
+            self.room_name,
+            {
+                'type': "group_send_event",
+                'event': "message",
+                'username': data['username'],
+                'text': data['text']
+            }
+        )
 
     async def group_send_event(self, data):
         await self.send(text_data=json.dumps(data))

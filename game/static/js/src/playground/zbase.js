@@ -55,6 +55,7 @@ class AcGamePlayground{
             let outer = this;
             let username = this.root.settings.username;
             let photo = this.root.settings.photo;
+            this.chat_field = new ChatField(this);
             this.multi_player_socket = new MultiPlayerSocket(this);
             let uuid = this.multi_player_socket.uuid;
             this.multi_player_socket.ws.onopen = function(){

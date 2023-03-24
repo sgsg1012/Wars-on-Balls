@@ -114,6 +114,7 @@ class Player extends AcGameObject{
         let outer = this;
         
         this.playground.game_map.$canvas.mousedown(function(e) {
+            outer.playground.chat_field.hide_input();
             if(outer.alive){
                 if (e.which === 1) { // 鼠标左键 控制移动
                     const rect = outer.ctx.canvas.getBoundingClientRect();
@@ -141,7 +142,16 @@ class Player extends AcGameObject{
             }
         });
         // 监听键盘事件 发技能 技能的方向为当前鼠标的位置与自己位置的夹角
-        $(window).keydown(function(e){
+        this.playground.game_map.$canvas.keydown(function(e){
+            // 打开聊天输入框
+            if (e.which === 13) {  // enter
+                if (outer.playground.mode === "multi mode") {  // 打开聊天框
+                    outer.playground.chat_field.show_input();
+                    return false;
+                }
+            }
+
+
             if(outer.alive){ // 活着才能发技能
                 if(e.which === 81) { // 监听q键 发火球
                     if(outer.fireball_coldtime < outer.eps){ // 技能cd

@@ -2,7 +2,7 @@ class GameMap extends AcGameObject{
     constructor(playground){
         super();
         this.playground = playground;
-        this.$canvas = $(`<canvas></canvas>`);
+        this.$canvas = $(`<canvas tabindex=0></canvas>`);
         this.ctx = this.$canvas[0].getContext('2d');
         this.ctx.canvas.width = this.playground.$playground.width();
         this.ctx.canvas.height = this.playground.$playground.height();
@@ -11,6 +11,7 @@ class GameMap extends AcGameObject{
     start(){
         this.add_listening_events();
         this.render();
+        this.$canvas.focus();
     }
     add_listening_events(){
         this.$canvas.on("contextmenu", function() {

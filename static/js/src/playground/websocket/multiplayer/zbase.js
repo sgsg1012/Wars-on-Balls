@@ -28,6 +28,8 @@ class MultiPlayerSocket{
                 outer.receive_is_attacked(data.uuid, data.angle, data.damage);
             }else if(event === "blink"){
                 outer.receive_blink(data.uuid, data.tx, data.ty);
+            }else if(event === "message"){
+                outer.receive_message(data.username,data.text);
             }
         }
     }
@@ -117,5 +119,15 @@ class MultiPlayerSocket{
             'event': "dead",
             'uuid': uuid,
         }));
+    }
+    send_message(username, text){
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'username': username,
+            'text': text,
+        }));
+    }
+    receive_message(username, text){
+        this.playground.chat_field.add_message(username,text);
     }
 }
