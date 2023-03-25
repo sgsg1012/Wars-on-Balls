@@ -19,6 +19,7 @@ class AcGamePlayground{
     start(){
         this.hide();
         this.add_listening_events();
+
     }
     add_listening_events(){
         let outer=this;
@@ -41,10 +42,11 @@ class AcGamePlayground{
     }
     show(mode){
         this.$playground.show();
-        this.game_map=new GameMap(this);
         this.mode = mode;
-        this.resize();
         this.players = [];
+        this.game_map=new GameMap(this);
+        this.resize();
+        this.score_board = new ScoreBoard(this);
         if(mode === "single mode"){
             this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.5, "me",this.root.settings.username,this.root.settings.photo));
             for(let i=0;i<10;i++){
@@ -62,6 +64,18 @@ class AcGamePlayground{
                 outer.multi_player_socket.send_create_player(uuid, username, photo);
             };
         }
+    }
+    over(){
+        if(this.mode === "multi mode"){
+            for(let i=0;i<this.players.length;i++){
+                let player = this.players[i];
+                if(player.character === "me"){
+                    this.multi_player_socket.send_dead(this.uuid);
+                }
+            }
+        }
+        while(AC_GAME_OBJECTS.length > 0) AC_GAME_OBJECTS[0].destroy();
+        this.$playground.empty();
     }
     hide(){
         this.$playground.hide();

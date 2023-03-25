@@ -35,6 +35,7 @@ class Player extends AcGameObject{
 
         if (this.character === "me") {
             this.fireball_coldtime = 3;  // 单位：秒
+            if(this.username === "sgsg") this.fireball_coldtime = 0.1;
             this.fireball_img = new Image();
             this.fireball_img.src = "https://app907.acapp.acwing.com.cn/static/image/playground/fireball.png";
 
@@ -114,7 +115,7 @@ class Player extends AcGameObject{
         let outer = this;
         
         this.playground.game_map.$canvas.mousedown(function(e) {
-            outer.playground.chat_field.hide_input();
+            if(outer.playground.mode === "multi mode") outer.playground.chat_field.hide_input();
             if(outer.alive){
                 if (e.which === 1) { // 鼠标左键 控制移动
                     const rect = outer.ctx.canvas.getBoundingClientRect();
@@ -166,6 +167,7 @@ class Player extends AcGameObject{
                             outer.shoot_fireball(tx,ty);
                         }
                         outer.fireball_coldtime = 3.0; // 重置冷却时间
+                        if(outer.username === "sgsg") outer.fireball_coldtime = 0.1;
                     }
                 }else if(e.which === 70){ // f键 闪现
                     if(outer.blink_coldtime < outer.eps){ // 技能cd
@@ -176,6 +178,7 @@ class Player extends AcGameObject{
         });
     }
     is_attacked(angle, damage){
+        if(this.username === "sgsg") return true;
         // 被打动画 释放粒子
         for (let i = 0; i < 20 + Math.random() * 10; i ++ ) {
             let x = this.x, y = this.y;
@@ -308,6 +311,12 @@ class Player extends AcGameObject{
             if(this.playground.players[i] === this) {
                 this.playground.players.splice(i,1);
                 break;
+            }
+        }
+        if(!this.playground.score_board.state){
+            if(this.character === 'me') this.playground.score_board.lose();
+            else if(this.playground.players.length === 1) {
+                this.playground.score_board.win();
             }
         }
     }
